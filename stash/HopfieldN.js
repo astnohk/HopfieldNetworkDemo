@@ -90,6 +90,7 @@ class HopfieldNetwork {
 		this.running = false;
 
 		this.fieldCellSize = 32;
+		this.fieldCellOffset = {top: 120, left: 70};
 		// Initialize
 		this.init();
 	}
@@ -163,15 +164,14 @@ class HopfieldNetwork {
 	initField()
 	{
 		this.field = new Array2D(this.fieldSize.cols, this.fieldSize.rows);
-		let margin = 80;
 		let size = this.fieldCellSize;
 		for (let y = 0; y < this.field.height; y++) {
 			for (let x = 0; x < this.field.width; x++) {
 				let check = document.createElement("input");
 				check.type = "checkbox";
 				check.className = "HopfieldNetworkPixel";
-				check.style.top = (margin + y * (size + 2)) + "px";
-				check.style.left = (margin + x * (size + 2)) + "px";
+				check.style.top = (this.fieldCellOffset.top + y * (size + 2)) + "px";
+				check.style.left = (this.fieldCellOffset.left + x * (size + 2)) + "px";
 				check.style.width = size + "px";
 				check.style.height = size + "px";
 				this.field.set(x, y, check);
