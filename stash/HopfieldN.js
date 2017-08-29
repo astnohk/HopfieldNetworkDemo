@@ -82,6 +82,8 @@ class HopfieldNetwork {
 		this.cellsCol = null;
 		this.cellsColLabel = null;
 
+		this.trainedPatterns = null;
+
 		this.timeSimulation = 0;
 		this.fieldSize = {rows: 5, cols: 5};
 		this.field = null;
@@ -159,6 +161,12 @@ class HopfieldNetwork {
 		this.timeColLabel.innerHTML = "x Cols";
 		this.timeColLabel.id = "HopfieldNetworkCellsColLabel";
 		this.rootWindow.appendChild(this.timeColLabel);
+
+		this.trainedPattern = document.createElement("div");
+		this.trainedPattern.id = "HopfieldNetworkTrainedPattern";
+		this.trainedPattern.style.width = "1px";
+		this.trainedPattern.style.height = "1px";
+		this.rootWindow.appendChild(this.trainedPattern);
 	}
 
 	initField()
@@ -238,14 +246,64 @@ class HopfieldNetwork {
 	{
 		// get field input
 		let nodeNum = this.nodes.length;
+		let current = new Array2D(this.field.width, this.field.height);
+		for (let n = 0; n < this.field.length; n++) {
+			current[n] = this.field[n].checked ? 1 : -1;
+		}
 		for (let i = 0; i < nodeNum; i++) {
 			for (let j = 0; j < nodeNum; j++) {
 				if (i != j) {
-					let tmp = this.weight.get(j, i) + (this.field[i].checked ? 1 : -1) * (this.field[j].checked ? 1 : -1);
+					let tmp = this.weight.get(j, i) + current[i] * current[j];
 					this.weight.set(j, i, tmp);
 				}
 			}
 		}
+		// Add trained pattern to the list
+		this.addTrainedPattern(current);
+	}
+
+	addTrainedPattern(pattern)
+	{
+		let cellSize = 8;
+		var newPattern = document.createElement("div");
+		newPattern.rootInstance = this;
+		newPattern.style.position = "absolute";
+		newPattern.style.top = 10 + this.trainedPattern.children.length * ((cellSize + 1) * this.field.height + 10) + "px";
+		newPattern.style.right = (cellSize + 1) * this.field.width - 1 + 10 + "px";
+		newPattern.pattern = [];
+		for (let i = 0; i < this.field.length; i++) {
+			newPattern.pattern[i] = pattern[i] > 0 ? true : false;
+		}
+		for (let m = 0; m < this.field.height; m++) {
+			for (let n = 0; n < this.field.width; n++) {
+				var cell = document.createElement("div");
+				cell.style.position = "absolute";
+				cell.style.top = m * (cellSize + 1) + "px";
+				cell.style.left = n * (cellSize + 1) + "px";
+				cell.style.width = cellSize + "px";
+				cell.style.height = cellSize + "px";
+				cell.style.outline = "1px solid rgb(255,255,255)";
+				cell.style.backgroundColor = pattern.get(n, m) > 0 ? "rgb(255,255,255)" : "rgb(0,0,0)";
+				newPattern.appendChild(cell);
+			}
+		}
+		this.trainedPattern.appendChild(newPattern);
+		let setPattern = function (event) {
+			let root = event.currentTarget.rootInstance;
+			for (let n = 0; n < root.field.length; n++) {
+				root.field[n].checked = event.currentTarget.pattern[n];
+			}
+		};
+		newPattern.addEventListener("click", setPattern, false);
+		newPattern.addEventListener("touchstart", setPattern, false);
+
+		// Set trainedPattern's size
+		let currentWidth = parseInt(this.trainedPattern.style.width, 10);
+		let newWidth = 20 + (cellSize + 1) * this.field.width;
+		if (newWidth > currentWidth) {
+			this.trainedPattern.style.width = newWidth + "px";
+		}
+		this.trainedPattern.style.height = 10 + this.trainedPattern.children.length * ((cellSize + 1) * this.field.height + 10) + "px";
 	}
 
 	run()
