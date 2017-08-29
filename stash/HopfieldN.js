@@ -162,11 +162,11 @@ class HopfieldNetwork {
 		this.timeColLabel.id = "HopfieldNetworkCellsColLabel";
 		this.rootWindow.appendChild(this.timeColLabel);
 
-		this.trainedPattern = document.createElement("div");
-		this.trainedPattern.id = "HopfieldNetworkTrainedPattern";
-		this.trainedPattern.style.width = "1px";
-		this.trainedPattern.style.height = "1px";
-		this.rootWindow.appendChild(this.trainedPattern);
+		this.trainedPatterns = document.createElement("div");
+		this.trainedPatterns.id = "HopfieldNetworkTrainedPattern";
+		this.trainedPatterns.style.width = "1px";
+		this.trainedPatterns.style.height = "1px";
+		this.rootWindow.appendChild(this.trainedPatterns);
 	}
 
 	initField()
@@ -212,9 +212,17 @@ class HopfieldNetwork {
 		if (this.fieldSize.cols < 1) {
 			this.fieldSize.cols = 1;
 		}
+		// Delete cells
 		for (let n = 0; n < this.field.length; n++) {
 			this.field[n].remove();
 		}
+		// Flush trainedPatterns
+		while (this.trainedPatterns.children.length > 0) {
+			this.trainedPatterns.children[0].remove();
+		}
+		this.trainedPatterns.style.width = "1px";
+		this.trainedPatterns.style.height = "1px";
+		// Initialize
 		this.initField();
 		this.initNetwork();
 	}
@@ -268,7 +276,7 @@ class HopfieldNetwork {
 		var newPattern = document.createElement("div");
 		newPattern.rootInstance = this;
 		newPattern.style.position = "absolute";
-		newPattern.style.top = 10 + this.trainedPattern.children.length * ((cellSize + 1) * this.field.height + 10) + "px";
+		newPattern.style.top = 10 + this.trainedPatterns.children.length * ((cellSize + 1) * this.field.height + 10) + "px";
 		newPattern.style.right = (cellSize + 1) * this.field.width - 1 + 10 + "px";
 		newPattern.pattern = [];
 		for (let i = 0; i < this.field.length; i++) {
@@ -287,7 +295,7 @@ class HopfieldNetwork {
 				newPattern.appendChild(cell);
 			}
 		}
-		this.trainedPattern.appendChild(newPattern);
+		this.trainedPatterns.appendChild(newPattern);
 		let setPattern = function (event) {
 			let root = event.currentTarget.rootInstance;
 			for (let n = 0; n < root.field.length; n++) {
@@ -297,13 +305,13 @@ class HopfieldNetwork {
 		newPattern.addEventListener("click", setPattern, false);
 		newPattern.addEventListener("touchstart", setPattern, false);
 
-		// Set trainedPattern's size
-		let currentWidth = parseInt(this.trainedPattern.style.width, 10);
+		// Set trainedPatterns' size
+		let currentWidth = parseInt(this.trainedPatterns.style.width, 10);
 		let newWidth = 20 + (cellSize + 1) * this.field.width;
 		if (newWidth > currentWidth) {
-			this.trainedPattern.style.width = newWidth + "px";
+			this.trainedPatterns.style.width = newWidth + "px";
 		}
-		this.trainedPattern.style.height = 10 + this.trainedPattern.children.length * ((cellSize + 1) * this.field.height + 10) + "px";
+		this.trainedPatterns.style.height = 10 + this.trainedPatterns.children.length * ((cellSize + 1) * this.field.height + 10) + "px";
 	}
 
 	run()
