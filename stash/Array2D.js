@@ -1,4 +1,4 @@
-"use strict;
+"use strict";
 
 class Array2D extends Array {
 	constructor(W, H) {
