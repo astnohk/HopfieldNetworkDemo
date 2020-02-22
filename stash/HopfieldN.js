@@ -9,8 +9,10 @@ class HopfieldNetwork {
 		this.rootWindow.rootInstance = this;
 		this.rootWindowStyle = window.getComputedStyle(this.rootWindow);
 
+		this.symmetrical = false;
 		this.trainButton = null;
 		this.startButton = null;
+		this.switchSymmetricalButton = null;
 		this.timeCounter = null;
 		this.timeCounterLabel = null;
 		this.cellsRow = null;
@@ -47,20 +49,31 @@ class HopfieldNetwork {
 	prepareTools()
 	{
 		this.trainButton = document.createElement("div");
+		this.trainButton.className = "HopfieldNetworkButton";
 		this.trainButton.rootInstance = this;
 		this.trainButton.innerHTML = "train";
 		this.trainButton.id = "HopfieldNetworkTrainButton";
-		this.trainButton.addEventListener("mousedown", function (e) { e.preventDefault(); e.currentTarget.rootInstance.train(e); }, false);
-		this.trainButton.addEventListener("touchstart", function (e) { e.preventDefault(); e.currentTarget.rootInstance.train(e); }, false);
+		this.trainButton.addEventListener("mousedown", function (e) { e.preventDefault(); e.currentTarget.rootInstance.trainCurrentPattern(); }, false);
+		this.trainButton.addEventListener("touchstart", function (e) { e.preventDefault(); e.currentTarget.rootInstance.trainCurrentPattern(); }, false);
 		this.rootWindow.appendChild(this.trainButton);
 
 		this.startButton = document.createElement("div");
+		this.startButton.className = "HopfieldNetworkButton";
 		this.startButton.rootInstance = this;
 		this.startButton.innerHTML = "run";
 		this.startButton.id = "HopfieldNetworkStartButton";
 		this.startButton.addEventListener("mousedown", function (e) { e.preventDefault(); e.currentTarget.rootInstance.run(e); }, false);
 		this.startButton.addEventListener("touchstart", function (e) { e.preventDefault(); e.currentTarget.rootInstance.run(e); }, false);
 		this.rootWindow.appendChild(this.startButton);
+
+		this.switchSymmetricalButton = document.createElement("div");
+		this.switchSymmetricalButton.className = "HopfieldNetworkButton";
+		this.switchSymmetricalButton.rootInstance = this;
+		this.switchSymmetricalButton.innerHTML = "symmetrical";
+		this.switchSymmetricalButton.id = "HopfieldNetworkSwitchSymmetricalButton";
+		this.switchSymmetricalButton.addEventListener("mousedown", function (e) { e.preventDefault(); e.currentTarget.rootInstance.switchSymmetrical(); }, false);
+		this.startButton.addEventListener("touchstart", function (e) { e.preventDefault(); e.currentTarget.rootInstance.switchSymmetrical(); }, false);
+		this.rootWindow.appendChild(this.switchSymmetricalButton);
 
 		this.timeCounter = document.createElement("div");
 		this.timeCounter.innerHTML = "0";
@@ -104,6 +117,9 @@ class HopfieldNetwork {
 		this.trainedPatterns.style.width = "1px";
 		this.trainedPatterns.style.height = "1px";
 		this.rootWindow.appendChild(this.trainedPatterns);
+
+		// Reset symmetrical button
+		this.switchSymmetrical(this.symmetrical);
 	}
 
 	initField()
@@ -187,24 +203,61 @@ class HopfieldNetwork {
 
 
 	// ----- NETWORKS -----
-	train()
+	bool2int(value) {
+		if (this.symmetrical) {
+			return value ? 1 : -1;
+		} else {
+			return value ? 1 : 0;
+		}
+	}
+
+	train(field)
+	{
+		let nodeNum = this.nodes.length;
+		if (field == null || field.length != this.nodes.length) {
+			console.error("HopfieldNetwork.train(): incorrect argument");
+			return;
+		}
+		for (let i = 0; i < nodeNum; i++) {
+			for (let j = 0; j < nodeNum; j++) {
+				if (i != j) {
+					let tmp = this.weight.get(j, i) +
+					    this.bool2int(field[i]) * this.bool2int(field[j]);
+					this.weight.set(j, i, tmp);
+				}
+			}
+		}
+	}
+
+	trainCurrentPattern()
 	{
 		// get field input
 		let nodeNum = this.nodes.length;
 		let current = new Array2D(this.field.width, this.field.height);
 		for (let n = 0; n < this.field.length; n++) {
-			current[n] = this.field[n].checked ? 1 : -1;
+			current[n] = this.field[n].checked;
 		}
-		for (let i = 0; i < nodeNum; i++) {
-			for (let j = 0; j < nodeNum; j++) {
-				if (i != j) {
-					let tmp = this.weight.get(j, i) + current[i] * current[j];
-					this.weight.set(j, i, tmp);
-				}
-			}
-		}
+		this.train(current);
 		// Add trained pattern to the list
 		this.addTrainedPattern(current);
+	}
+
+	retrainTrainedPatterns()
+	{
+		// Check
+		if (this.trainedPatterns.children.length == 0 ||
+		    this.nodes.length != this.trainedPatterns.children[0].pattern.length) {
+			return;
+		}
+		// Reset weights
+		for (let n = 0; n < this.weight.length; n++) {
+			this.weight[n] = 0;
+		}
+		// Learn all patterns stored in trainedPatterns
+		for (let pat = 0; pat < this.trainedPatterns.children.length; pat++) {
+			let pattern = this.trainedPatterns.children[pat].pattern;
+			this.train(pattern);
+		}
 	}
 
 	addTrainedPattern(pattern)
@@ -215,7 +268,7 @@ class HopfieldNetwork {
 		newPattern.style.position = "absolute";
 		newPattern.style.top = 10 + this.trainedPatterns.children.length * ((cellSize + 1) * this.field.height + 10) + "px";
 		newPattern.style.right = (cellSize + 1) * this.field.width - 1 + 10 + "px";
-		newPattern.pattern = [];
+		newPattern.pattern = new Array2D(this.field.width, this.field.height);
 		for (let i = 0; i < this.field.length; i++) {
 			newPattern.pattern[i] = pattern[i] > 0 ? true : false;
 		}
@@ -259,6 +312,7 @@ class HopfieldNetwork {
 			let count = 100;
 			this.loopTimer = setInterval(function () {
 				root.step();
+				root.showEnergy();
 				count--;
 				if (count <= 0) {
 					clearInterval(root.loopTimer);
@@ -272,7 +326,7 @@ class HopfieldNetwork {
 	{
 		// Get current field state
 		for (let k = 0; k < this.field.length; k++) {
-			this.nodes[k].output = this.field[k].checked ? 1 : -1;
+			this.nodes[k].output = this.field[k].checked ? 1 : 0;
 		}
 		// Update hopfield network
 		let nodeNum = this.nodes.length;
@@ -290,11 +344,34 @@ class HopfieldNetwork {
 			this.nodes[i].output = 1;
 			this.field[i].checked = true;
 		} else {
-			this.nodes[i].output = -1;
+			this.nodes[i].output = 0;
 			this.field[i].checked = false;
 		}
 		this.timeSimulation++;
 		this.timeCounter.innerHTML = this.timeSimulation;
+	}
+
+	showEnergy()
+	{
+		let E = 0;
+		for (let i = 0; i < this.field.length; i++) {
+			for (let j = 0; j < this.field.length; j++) {
+				E += -this.weight.get(j, i) * this.nodes[i].output * this.nodes[j].output;
+			}
+		}
+		console.log("E = " + E);
+	}
+
+	switchSymmetrical(value = null)
+	{
+		if (typeof value === "boolean") {
+			this.symmetrical = value;
+		} else {
+			this.symmetrical = !this.symmetrical;
+		}
+		this.switchSymmetricalButton.innerHTML = this.symmetrical ? "symmetrical" : "asymmetrical";
+		// Re-train all patterns in current mode
+		this.retrainTrainedPatterns()
 	}
 }
 
