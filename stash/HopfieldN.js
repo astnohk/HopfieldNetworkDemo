@@ -214,7 +214,7 @@ class HopfieldNetwork {
 	train(field)
 	{
 		let nodeNum = this.nodes.length;
-		if (field == null || field.length != this.nodes.length) {
+		if (field == null || field.length != nodeNum) {
 			console.error("HopfieldNetwork.train(): incorrect argument");
 			return;
 		}
